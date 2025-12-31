@@ -2,6 +2,7 @@
 
 from flask import Flask, make_response, jsonify, session
 from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
 
 from models import db, Article, User
 
@@ -22,13 +23,33 @@ def clear_session():
 
 @app.route('/articles')
 def index_articles():
+    articles = Article.query.all()
+    return jsonify([article.to_dict() for article in articles]), 200
 
-    pass
+    # pass
 
 @app.route('/articles/<int:id>')
 def show_article(id):
+    #Initialize page views to 0 if it doesn't exist, otherwise keep current value
+    session['page_views'] = session.get('page_views', 0)
 
-    pass
+    # Incremment page views for this request
+    session['page_views'] += 1
+
+    # Check if user has exceeded limit
+    if session['page_views'] <= 3:
+        #User is within the limit, return the article
+        article = Article.query.filter(Article.id == id).first()
+        if article:
+            return jsonify(article.to_dict()), 200
+        else:
+            return{'message': 'Article not found'}, 404
+        
+    else:
+        return {'message': 'Maximum pageview limit reached'}, 401
+        
+
+    # pass
 
 if __name__ == '__main__':
     app.run(port=5555)
